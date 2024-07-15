@@ -1,6 +1,3 @@
-## ZetaChain Omni Player ID
-
-
 # PlayrID: Universal Gaming Identity NFT
 
 ## Overview
@@ -22,6 +19,4 @@ PlayrID is a revolutionary protocol that creates a universal gaming identity acr
 - **Web3 Integration**: Web3.js
 - **Decentralized Storage**: IPFS
 
-## Getting Started
 
-1. Clone the repository:
