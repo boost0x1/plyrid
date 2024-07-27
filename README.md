@@ -20,3 +20,16 @@ PlayrID is a revolutionary protocol that creates a universal gaming identity acr
 - **Decentralized Storage**: IPFS
 
 
+## Deployment 
+
+🚀 Successfully deployed contract on ZetaChain.
+
+📜 Contract address: 0x3a3905A60797C9F431991BfCa91a30E02299264D
+
+🌍 Explorer: https://athens3.explorer.zetachain.com/address/0x3a3905A60797C9F431991BfCa91a30E02299264D
+
+
+## Milestone:
+
+
+[] Cross Chain ID Transfer and Verify
