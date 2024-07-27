@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
-import "@zetachain/protocol-contracts/contracts/zevm/SystemContract.sol";
-import "@zetachain/protocol-contracts/contracts/zevm/interfaces/zContract.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@zetachain/toolkit/contracts/BytesHelperLib.sol";
-import "@zetachain/toolkit/contracts/OnlySystem.sol";
+import "@zetachain/protocol-contracts/contracts/evm/tools/ZetaInteractor.sol";
+import "@zetachain/protocol-contracts/contracts/evm/interfaces/ZetaInterfaces.sol";
 
-contract UGI is zContract, ERC721, OnlySystem {
-    SystemContract public systemContract;
-    error CallerNotOwnerNotApproved();
-    error AlreadyMinted();
+contract NFT is ERC721, ZetaInteractor, ZetaReceiver {
+    event CrossChainTransfer(address from, address to, uint256 tokenId, uint256 destinationChainId);
+    event CrossChainReceive(address to, uint256 tokenId, uint256 sourceChainId);
 
-    struct GameData {
+    uint256 private _tokenIds;
+
+    struct PlayerData {
         uint256 totalGamesPlayed;
         uint256 achievementCount;
         mapping(uint256 => Achievement) achievements;
@@ -25,61 +24,57 @@ contract UGI is zContract, ERC721, OnlySystem {
         bytes metadata;
     }
 
-    mapping(uint256 => GameData) public tokenGameData;
-    mapping(uint256 => uint256) public tokenChains;
-    mapping(uint256 => uint256) public tokenAmounts;
-    mapping(address => bool) public hasMinted;
-    uint256 private _nextTokenId;
-    uint256 constant BITCOIN = 18332;
-    event UGIMinted(uint256 tokenId, address user);
-    event GameDataUpdated(uint256 tokenId);
+    mapping(uint256 => PlayerData) private _playerData;
 
-    constructor(address systemContractAddress) ERC721("UniversalGamingIdentity", "UGI") {
-        systemContract = SystemContract(systemContractAddress);
-        _nextTokenId = 1;
+    constructor(address connectorAddress) ERC721("OmniPlayerID", "OPID") ZetaInteractor(connectorAddress) {}
+
+    function mint(address to) public onlyOwner returns (uint256) {
+        _tokenIds++;
+        _safeMint(to, _tokenIds);
+        return _tokenIds;
     }
 
-    function onCrossChainCall(
-        zContext calldata context,
-        address zrc20,
-        uint256 amount,
-        bytes calldata message
-    ) external override onlySystem(systemContract) {
-        address recipient;
+    function transferCrossChain(
+        uint256 destinationChainId,
+        address to,
+        uint256 tokenId
+    ) external payable {
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "Not token owner or approved");
+        require(_isValidChainId(destinationChainId), "Invalid destination chain ID");
 
-        if (context.chainID == BITCOIN) {
-            recipient = BytesHelperLib.bytesToAddress(message, 0);
-        } else {
-            recipient = abi.decode(message, (address));
-        }
+        _burn(tokenId);
 
-        _mintUGI(recipient, context.chainID, amount);
+        bytes memory message = abi.encode(to, tokenId, msg.sender);
+
+        connector.send(
+            ZetaInterfaces.SendInput({
+                destinationChainId: destinationChainId,
+                destinationAddress: interactorsByChainId[destinationChainId],
+                destinationGasLimit: 300000,
+                message: message,
+                zetaValueAndGas: msg.value,
+                zetaParams: abi.encode("")
+            })
+        );
+
+        emit CrossChainTransfer(_msgSender(), to, tokenId, destinationChainId);
     }
 
-    function _mintUGI(address recipient, uint256 chainId, uint256 amount) private {
-        if (hasMinted[recipient]) {
-            revert AlreadyMinted();
-        }
+    function onZetaMessage(ZetaInterfaces.ZetaMessage calldata zetaMessage) external override isValidMessageCall(zetaMessage) {
+        (address to, uint256 tokenId) = abi.decode(zetaMessage.message, (address, uint256));
+        _safeMint(to, tokenId);
+        emit CrossChainReceive(to, tokenId, zetaMessage.sourceChainId);
+    }
+
+    function onZetaRevert(ZetaInterfaces.ZetaRevert calldata zetaRevert) external override isValidRevertCall(zetaRevert) {
+        (address to, uint256 tokenId, address from) = abi.decode(zetaRevert.message, (address, uint256, address));
+        _safeMint(from, tokenId);
+    }
+
+    function updateGameData(uint256 tokenId, uint256 gamesPlayed, Achievement[] memory newAchievements) external {
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "Not token owner or approved");
         
-        uint256 tokenId = _nextTokenId;
-        _safeMint(recipient, tokenId);
-        tokenChains[tokenId] = chainId;
-        tokenAmounts[tokenId] = amount;
-        hasMinted[recipient] = true;
-        _nextTokenId++;
-        emit UGIMinted(tokenId, recipient);
-    }
-
-    function mintUGI(address user, uint256 amount) external {
-        _mintUGI(user, block.chainid, amount);
-    }
-
-    function updateGameData(uint256 tokenId, bytes calldata gameData) external {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "Not owner or approved");
-        
-        (uint256 gamesPlayed, Achievement[] memory newAchievements) = abi.decode(gameData, (uint256, Achievement[]));
-        
-        GameData storage data = tokenGameData[tokenId];
+        PlayerData storage data = _playerData[tokenId];
         data.totalGamesPlayed += gamesPlayed;
 
         for (uint i = 0; i < newAchievements.length; i++) {
@@ -87,33 +82,15 @@ contract UGI is zContract, ERC721, OnlySystem {
             data.achievements[achievementId] = newAchievements[i];
             data.achievementCount++;
         }
-
-        emit GameDataUpdated(tokenId);
     }
 
     function getGameData(uint256 tokenId) external view returns (uint256 totalGamesPlayed, Achievement[] memory achievements) {
-        GameData storage data = tokenGameData[tokenId];
+        PlayerData storage data = _playerData[tokenId];
         totalGamesPlayed = data.totalGamesPlayed;
         
         achievements = new Achievement[](data.achievementCount);
         for (uint i = 0; i < data.achievementCount; i++) {
             achievements[i] = data.achievements[i];
         }
-    }
-
-    function burnUGI(uint256 tokenId, bytes memory recipient) public {
-        if (!_isApprovedOrOwner(_msgSender(), tokenId)) {
-            revert CallerNotOwnerNotApproved();
-        }
-        
-        address zrc20 = systemContract.gasCoinZRC20ByChainId(tokenChains[tokenId]);
-        (, uint256 gasFee) = IZRC20(zrc20).withdrawGasFee();
-        IZRC20(zrc20).approve(zrc20, gasFee);
-        IZRC20(zrc20).withdraw(recipient, gasFee);
-
-        _burn(tokenId);
-        delete tokenGameData[tokenId];
-        delete tokenChains[tokenId];
-        delete hasMinted[ownerOf(tokenId)];
     }
 }
