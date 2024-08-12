@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { useAccount, useNetwork, useSwitchNetwork } from "wagmi"
 import { AnimatePresence, motion } from "framer-motion"
 import { debounce } from "lodash"
@@ -30,7 +30,7 @@ import { useMint } from "./mint"
 import { useTransfer } from "./transfer"
 import { useNFT } from "./useNFT"
 import abiJson from "../../public/abi/NFT.sol/UGI.json"
-const abi = abiJson.abi;
+const abi = abiJson.abi
 import { useEthersSigner } from "@/hooks/useEthersSigner"
 import { useCCTXsContext } from "@/context/CCTXsContext"
 
@@ -214,18 +214,18 @@ const NFTPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-    <div className="flex items-center justify-between mb-8">
-      <h1 className="text-3xl font-bold">NFT Library & Gaming Identity</h1>
+    <div className="container mx-auto px-6 py-12">
+    <div className="flex items-center justify-between mb-12">
+      <h1 className="text-4xl font-bold text-gray-800">NFT Library & Gaming Identity</h1>
       <Button size="icon" variant="outline" onClick={fetchNFTs}>
         <RefreshCw className={`h-5 w-5 ${assetsReloading && "animate-spin"}`} />
       </Button>
     </div>
 
     {/* Mint NFT Section */}
-    <Card className="p-6 mb-8">
-      <h2 className="text-2xl font-semibold mb-4">Mint New NFT</h2>
-      <div className="flex gap-4">
+    <Card className="p-8 mb-12 bg-gradient-to-r from-purple-50 to-blue-50">
+      <h2 className="text-2xl font-semibold mb-6 text-gray-700">Mint New NFT</h2>
+      <div className="flex gap-4 flex-wrap sm:flex-nowrap">
         <Input
           placeholder="Amount"
           type="number"
@@ -234,7 +234,7 @@ const NFTPage = () => {
           className="flex-grow"
         />
         <Select onValueChange={(e) => setSelectedChain(e)}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Select Chain" />
           </SelectTrigger>
           <SelectContent>
@@ -246,9 +246,9 @@ const NFTPage = () => {
           </SelectContent>
         </Select>
         <Button
-onClick={() => {setAmount(0.001); mint(selectedChain)}}
-          disabled={ !selectedChain || mintingInProgress}
-          className="w-32"
+          onClick={() => {setAmount(0.001); mint(selectedChain)}}
+          disabled={!selectedChain || mintingInProgress}
+          className="w-full sm:w-32"
         >
           {mintingInProgress ? (
             <Loader className="h-4 w-4 mr-2 animate-spin" />
@@ -260,125 +260,124 @@ onClick={() => {setAmount(0.001); mint(selectedChain)}}
       </div>
     </Card>
 
-{/* Owned NFTs Display */}
-<h2 className="text-2xl font-semibold mb-4">Your NFTs</h2>
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-    {assets.length > 0 ? (
-      assets.map((asset: any) => (
-        !assetsBurned.includes(asset.id) && (
-          <motion.div
-            layout
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            key={asset.id}
-          >
-            <Tilt lineGlareBlurAmount="40px" scale={1.05} className="h-full">
-              <Card className={`relative h-full p-6 ${colors[asset?.chain]} overflow-hidden border-2 border-white/10 shadow-lg`}>
-                <div className={`absolute inset-0 bg-black/75 flex items-center justify-center z-10 ${assetsUpdating.includes(asset.id) ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
-                  <Loader className="text-white animate-spin" size={48} />
-                </div>
-                <div className="flex flex-col h-full justify-between relative z-0">
-                  <div>
-                    <div className="flex justify-between items-center mb-4">
-                      <p className="text-2xl font-bold text-white">#{asset.id}</p>
-                      <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-semibold text-white">
-                        {coins.find((c: any) => c.chain_id == asset?.chain)?.symbol}
-                      </span>
+ {/* Owned NFTs Display */}
+ <h2 className="text-3xl font-semibold mb-6 text-gray-800">Your NFTs</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-12">
+        {assets.length > 0 ? (
+          assets.map((asset: any) => (
+            !assetsBurned.includes(asset.id) && (
+              <motion.div
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                key={asset.id}
+              >
+                <Tilt lineGlareBlurAmount="40px" scale={1.05} className="h-full">
+                  <Card className={`relative h-full p-6 ${colors[asset?.chain]} overflow-hidden border-2 border-white/10 shadow-lg`}>
+                    <div className={`absolute inset-0 bg-black/75 flex items-center justify-center z-10 ${assetsUpdating.includes(asset.id) ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
+                      <Loader className="text-white animate-spin" size={48} />
                     </div>
-                    <div className="bg-white/10 rounded-lg p-4 mb-4">
-                      <p className="text-6xl font-bold text-white mb-2">{formatAmount(asset?.amount)}</p>
-                      <p className="text-sm text-white/60">Minted on {getChainName(asset?.chain)}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <img 
-                      src={`https://picsum.photos/seed/${asset.id}/300/200`} 
-                      alt={`NFT ${asset.id}`} 
-                      className="w-full h-40 object-cover rounded-lg"
-                    />
-                    <div className="flex justify-between items-center">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="secondary" size="sm" className="w-[48%]">
-                            <Send className="h-4 w-4 mr-2" />
-                            Transfer
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-4">
-                          <Input
-                            placeholder="Recipient address"
-                            value={recipient}
-                            onChange={(e) => setRecipient(e.target.value)}
-                            className="mb-2"
-                          />
+                    <div className="flex flex-col h-full justify-between relative z-0">
+                      <div>
+                        <div className="flex justify-between items-center mb-4">
+                          <p className="text-2xl font-bold text-white">#{asset.id}</p>
+                          <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-semibold text-white">
+                            {coins.find((c: any) => c.chain_id == asset?.chain)?.symbol}
+                          </span>
+                        </div>
+                        <div className="bg-white/10 rounded-lg p-4 mb-4">
+                          <p className="text-4xl font-bold text-white mb-2">{formatAmount(asset?.amount)}</p>
+                          <p className="text-sm text-white/60">Minted on {getChainName(asset?.chain)}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <img 
+                          src={`https://picsum.photos/seed/${asset.id}/300/200`} 
+                          alt={`NFT ${asset.id}`} 
+                          className="w-full h-40 object-cover rounded-lg"
+                        />
+                        <div className="flex justify-between items-center">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="secondary" size="sm" className="w-[48%]">
+                                <Send className="h-4 w-4 mr-2" />
+                                Transfer
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-4">
+                              <Input
+                                placeholder="Recipient address"
+                                value={recipient}
+                                onChange={(e) => setRecipient(e.target.value)}
+                                className="mb-2"
+                              />
+                              <Button 
+                                onClick={() => transfer(asset.id)}
+                                disabled={assetsUpdating.includes(asset.id)}
+                                className="w-full"
+                              >
+                                Confirm Transfer
+                              </Button>
+                            </PopoverContent>
+                          </Popover>
                           <Button 
-                            onClick={() => transfer(asset.id)}
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => burn(asset.id)}
                             disabled={assetsUpdating.includes(asset.id)}
-                            className="w-full"
+                            className="w-[48%]"
                           >
-                            Confirm Transfer
+                            <Flame className="h-4 w-4 mr-2" />
+                            Burn
                           </Button>
-                        </PopoverContent>
-                      </Popover>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => burn(asset.id)}
-                        disabled={assetsUpdating.includes(asset.id)}
-                        className="w-[48%]"
-                      >
-                        <Flame className="h-4 w-4 mr-2" />
-                        Burn
-                      </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </Card>
-            </Tilt>
-          </motion.div>
-        )
-      ))
-    ) : (
-      <p className="text-gray-500 col-span-full text-center">{"You don't own any NFTs yet. Mint one to get started!"}</p>
-    )}
-</div>
+                  </Card>
+                </Tilt>
+              </motion.div>
+            )
+          ))
+        ) : (
+          <p className="text-gray-500 col-span-full text-center text-lg">{"You don't own any NFTs yet. Mint one to get started!"}</p>
+        )}
+      </div>
 
     {/* Game Stats Display */}
-{/* Game Stats Display */}
-<Card className="p-6 mb-8">
-  <h2 className="text-2xl font-semibold mb-4 flex items-center">
-    <GamepadIcon className="mr-2" />
-    Game Stats
-  </h2>
-  <div className="bg-gray-100 rounded-lg p-4 mb-4">
-    <p className="text-xl font-semibold">Total Games Played: {gameStats.totalGamesPlayed?.toString() || '0'}</p>
-  </div>
-  <h3 className="text-xl font-semibold mb-2 flex items-center">
-    <Trophy className="mr-2" />
-    Achievements
-  </h3>
-  <div className="space-y-4">
-    {gameStats.achievements && gameStats.achievements.length > 0 ? (
-      gameStats.achievements.map((achievement, index) => (
-        <Card key={index} className="p-4">
-          <p><strong>Game ID:</strong> {achievement.gameId.toString()}</p>
-          <p><strong>Achievement ID:</strong> {achievement.achievementId.toString()}</p>
-          <p><strong>Timestamp:</strong> {achievement.timestamp.toString()}</p>
-          <p><strong>Metadata:</strong> {achievement.metadata}</p>
-        </Card>
-      ))
-    ) : (
-      <p className="text-gray-500">No achievements yet. Keep playing to earn some!</p>
-    )}
-  </div>
-</Card>
+    <Card className="p-8 mb-12 bg-gradient-to-r from-green-50 to-blue-50">
+      <h2 className="text-3xl font-semibold mb-6 flex items-center text-gray-800">
+        <GamepadIcon className="mr-3" />
+        Game Stats
+      </h2>
+      <div className="bg-white rounded-lg p-6 mb-6 shadow-md">
+        <p className="text-2xl font-semibold text-gray-700">Total Games Played: {gameStats.totalGamesPlayed?.toString() || '0'}</p>
+      </div>
+      <h3 className="text-2xl font-semibold mb-4 flex items-center text-gray-700">
+        <Trophy className="mr-3" />
+        Achievements
+      </h3>
+      <div className="space-y-6">
+        {gameStats.achievements && gameStats.achievements.length > 0 ? (
+          gameStats.achievements.map((achievement, index) => (
+            <Card key={index} className="p-6 bg-white shadow-md">
+              <p className="mb-2"><strong>Game ID:</strong> {achievement.gameId.toString()}</p>
+              <p className="mb-2"><strong>Achievement ID:</strong> {achievement.achievementId.toString()}</p>
+              <p className="mb-2"><strong>Timestamp:</strong> {achievement.timestamp.toString()}</p>
+              <p><strong>Metadata:</strong> {achievement.metadata}</p>
+            </Card>
+          ))
+        ) : (
+          <p className="text-gray-500 text-lg">No achievements yet. Keep playing to earn some!</p>
+        )}
+      </div>
+    </Card>
 
     {/* Update Game Stats Section */}
-    <Card className="p-6">
-      <h2 className="text-2xl font-semibold mb-4">Update Game Stats</h2>
-      <div className="space-y-4">
+    <Card className="p-8 bg-gradient-to-r from-yellow-50 to-orange-50">
+      <h2 className="text-3xl font-semibold mb-6 text-gray-800">Update Game Stats</h2>
+      <div className="space-y-6">
         <Input
           type="number"
           placeholder="New Games Played"
